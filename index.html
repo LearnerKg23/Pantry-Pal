@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PantryPal – Recipe Discovery & Pantry Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<!-- NAVBAR -->
+<nav>
+  <div class="nav-inner">
+    <div class="logo" onclick="navigate('home')">Pantry<span>Pal</span></div>
+    <div class="nav-links">
+      <button class="nav-link active" onclick="navigate('home')">Discover</button>
+      <button class="nav-link" onclick="requireAuth('create')">Share Recipe</button>
+      <button class="nav-link" onclick="requireAuth('my-recipes')">My Recipes</button>
+      <button class="nav-link" onclick="requireAuth('pantry')">My Pantry</button>
+      <button class="nav-link" id="admin-nav-link" onclick="navigate('admin')" style="display:none">Admin</button>
+    </div>
+    <div class="nav-actions" id="nav-actions">
+      <button class="btn btn-secondary btn-sm" onclick="navigate('login')">Sign In</button>
+      <button class="btn btn-primary btn-sm" onclick="navigate('register')">Get Started</button>
+    </div>
+  </div>
+</nav>
+
+<!-- HOME PAGE -->
+<div class="page active" id="page-home">
+  <main>
+    <div class="hero">
+      <h1>Discover Recipes<br>from Your Pantry</h1>
+      <p>Find what to cook tonight using ingredients you already have. Explore thousands of community recipes or share your own.</p>
+      <div class="search-bar">
+        <input type="text" id="home-search-input" placeholder="Search recipes, ingredients, or cuisines…" onkeydown="if(event.key==='Enter')doSearch()">
+        <button onclick="doSearch()">Search</button>
+      </div>
+    </div>
+    <div class="filter-pills" id="cuisine-filters">
+      <span style="font-size:13px;font-weight:700;color:var(--text-muted);margin-right:4px;">Cuisine:</span>
+    </div>
+    <h2 class="section-title">Featured Recipes</h2>
+    <div class="recipe-grid" id="home-recipe-grid"></div>
+  </main>
+</div>
+
+<!-- RECIPE DETAIL PAGE -->
+<div class="page" id="page-detail">
+  <main>
+    <button class="btn btn-secondary btn-sm" onclick="goBack()" style="margin-bottom:20px">← Back</button>
+    <div id="detail-content"></div>
+  </main>
+</div>
+
+<!-- CREATE RECIPE PAGE -->
+<div class="page" id="page-create">
+  <main>
+    <div style="max-width:700px;margin:0 auto">
+      <h1 style="margin-bottom:8px;font-size:32px">Share a Recipe</h1>
+      <p style="color:var(--text-muted);margin-bottom:32px;font-size:15px">Your recipe will be reviewed and published once approved.</p>
+
+      <div class="step-indicator">
+        <div>
+          <div class="step-dot active" id="sdot1">1</div>
+          <div class="step-label">Basic Info</div>
+        </div>
+        <div class="step-line" id="sline1"></div>
+        <div>
+          <div class="step-dot" id="sdot2">2</div>
+          <div class="step-label">Ingredients</div>
+        </div>
+        <div class="step-line" id="sline2"></div>
+        <div>
+          <div class="step-dot" id="sdot3">3</div>
+          <div class="step-label">Tags & Submit</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <!-- Step 1 -->
+        <div class="step-content active" id="step1">
+          <h3 style="margin-bottom:20px;font-size:20px">Basic Information</h3>
+          <div class="form-group"><label>Recipe Title</label><input type="text" id="r-title" placeholder="e.g. Creamy Tuscan Pasta"></div>
+          <div class="form-row">
+            <div class="form-group"><label>Cuisine</label>
+              <select id="r-cuisine">
+                <option value="">Select cuisine…</option>
+                <option>Italian</option><option>Indian</option><option>Mexican</option>
+                <option>Chinese</option><option>Japanese</option><option>Thai</option>
+                <option>French</option><option>American</option><option>Mediterranean</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Prep Time (minutes)</label><input type="number" id="r-prep" placeholder="30"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Calories (optional)</label><input type="number" id="r-cal" placeholder="450"></div>
+            <div class="form-group"><label>Recipe Emoji</label>
+              <select id="r-emoji">
+                <option value="🍝">🍝 Pasta</option><option value="🍛">🍛 Curry</option>
+                <option value="🥗">🥗 Salad</option><option value="🍜">🍜 Noodles</option>
+                <option value="🍕">🍕 Pizza</option><option value="🍲">🍲 Stew</option>
+                <option value="🥩">🥩 Meat</option><option value="🐟">🐟 Seafood</option>
+                <option value="🥐">🥐 Baked</option><option value="🧆">🧆 Snack</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group"><label>Instructions</label><textarea id="r-instructions" rows="6" placeholder="Describe step by step how to cook this recipe…"></textarea></div>
+          <button class="btn btn-primary" onclick="nextStep(2)">Continue →</button>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="step-content" id="step2">
+          <h3 style="margin-bottom:20px;font-size:20px">Ingredients</h3>
+          <div id="ingredient-rows"></div>
+          <button class="btn btn-secondary btn-sm" onclick="addIngRow()" style="margin-bottom:24px">+ Add Ingredient</button>
+          <div style="display:flex;gap:12px">
+            <button class="btn btn-secondary" onclick="nextStep(1)">← Back</button>
+            <button class="btn btn-primary" onclick="nextStep(3)">Continue →</button>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="step-content" id="step3">
+          <h3 style="margin-bottom:20px;font-size:20px">Tags & Submit</h3>
+          <div class="form-group">
+            <label>Tags (comma-separated)</label>
+            <input type="text" id="r-tags" placeholder="vegetarian, quick, gluten-free">
+          </div>
+          <div class="alert alert-success" id="submit-info" style="display:none">Your recipe has been submitted for review. It will appear publicly once approved by an admin.</div>
+          <div style="display:flex;gap:12px">
+            <button class="btn btn-secondary" onclick="nextStep(2)">← Back</button>
+            <button class="btn btn-primary" onclick="submitRecipe()">Submit Recipe</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- MY RECIPES PAGE -->
+<div class="page" id="page-my-recipes">
+  <main>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px">
+      <h1 style="font-size:32px">My Recipes</h1>
+      <button class="btn btn-primary" onclick="navigate('create')">+ New Recipe</button>
+    </div>
+    <div id="my-recipes-list"></div>
+  </main>
+</div>
+
+<!-- PANTRY PAGE -->
+<div class="page" id="page-pantry">
+  <main>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <h1 style="font-size:32px">My Pantry</h1>
+      <button class="btn btn-primary" onclick="findPantryRecipes()">🔍 Find Recipes with My Pantry</button>
+    </div>
+    <p style="color:var(--text-muted);margin-bottom:32px;font-size:15px">Track what's in your kitchen and discover recipes you can make right now.</p>
+    <div class="pantry-grid">
+      <div>
+        <div class="section-card">
+          <h3>Add Ingredient</h3>
+          <div class="ingredient-search" style="position:relative">
+            <span class="search-icon">🔎</span>
+            <input type="text" id="pantry-search" placeholder="Search ingredients…" oninput="searchIngredients(this.value)" autocomplete="off">
+            <div class="dropdown" id="ing-dropdown" style="display:none"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Quantity</label><input type="text" id="pantry-qty" placeholder="e.g. 2"></div>
+            <div class="form-group"><label>Unit</label>
+              <select id="pantry-unit">
+                <option>cups</option><option>grams</option><option>kg</option>
+                <option>tbsp</option><option>tsp</option><option>pieces</option>
+                <option>ml</option><option>oz</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn btn-green" onclick="addToPantry()" style="width:100%">+ Add to Pantry</button>
+        </div>
+      </div>
+      <div>
+        <div class="section-card">
+          <h3>My Pantry <span style="font-size:14px;font-weight:400;color:var(--text-muted)" id="pantry-count"></span></h3>
+          <div id="pantry-list"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- SEARCH RESULTS PAGE -->
+<div class="page" id="page-search">
+  <main>
+    <h1 style="font-size:32px;margin-bottom:8px">Search Results</h1>
+    <p style="color:var(--text-muted);font-size:15px;margin-bottom:28px" id="search-subtitle"></p>
+    <div class="search-layout">
+      <div>
+        <div class="history-card" id="history-card" style="display:none">
+          <h3>Recent Searches</h3>
+          <div id="search-history-list"></div>
+        </div>
+      </div>
+      <div>
+        <div class="recipe-grid" id="search-results-grid"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ADMIN PAGE -->
+<div class="page" id="page-admin">
+  <main>
+    <h1 style="font-size:32px;margin-bottom:28px">Admin Panel</h1>
+    <div class="admin-tabs">
+      <button class="admin-tab active" onclick="adminTab('pending')">Pending Recipes</button>
+      <button class="admin-tab" onclick="adminTab('users')">All Users</button>
+      <button class="admin-tab" onclick="adminTab('ingredients')">Ingredients</button>
+    </div>
+    <div class="admin-panel active" id="admin-pending">
+      <div class="section-card">
+        <h3>Pending Review</h3>
+        <div id="pending-list"></div>
+      </div>
+    </div>
+    <div class="admin-panel" id="admin-users">
+      <div class="section-card">
+        <h3>Registered Users</h3>
+        <table>
+          <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th>Recipes</th></tr></thead>
+          <tbody id="users-table"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="admin-panel" id="admin-ingredients">
+      <div class="section-card">
+        <h3>Manage Ingredients</h3>
+        <div style="display:flex;gap:12px;margin-bottom:20px">
+          <input type="text" id="new-ing-name" placeholder="Ingredient name" style="flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:'Nunito',sans-serif;font-size:14px;outline:none">
+          <select id="new-ing-cat" style="padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:'Nunito',sans-serif;font-size:14px;outline:none">
+            <option>Vegetables</option><option>Dairy</option><option>Spices</option><option>Grains</option><option>Proteins</option><option>Fruits</option><option>Condiments</option>
+          </select>
+          <button class="btn btn-primary" onclick="addIngredient()">+ Add</button>
+        </div>
+        <table>
+          <thead><tr><th>Name</th><th>Category</th></tr></thead>
+          <tbody id="ingredients-table"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- LOGIN PAGE -->
+<div class="page" id="page-login">
+  <main>
+    <div class="auth-wrap">
+      <div class="card">
+        <h2>Welcome back</h2>
+        <p class="sub">Sign in to your PantryPal account</p>
+        <div id="login-alert"></div>
+        <div class="form-group"><label>Email</label><input type="email" id="login-email" placeholder="you@example.com"></div>
+        <div class="form-group"><label>Password</label><input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+        <button class="btn btn-primary" style="width:100%;padding:13px" onclick="doLogin()">Sign In</button>
+        <p class="form-link">Don't have an account? <a onclick="navigate('register')">Create one</a></p>
+        <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--border)">
+          <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;text-align:center;font-weight:600">Demo Accounts</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <button class="btn btn-secondary btn-sm" onclick="demoLogin('user')">👤 Demo User</button>
+            <button class="btn btn-secondary btn-sm" onclick="demoLogin('admin')">🔑 Admin Login</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- REGISTER PAGE -->
+<div class="page" id="page-register">
+  <main>
+    <div class="auth-wrap">
+      <div class="card">
+        <h2>Create account</h2>
+        <p class="sub">Join thousands of home cooks on PantryPal</p>
+        <div id="register-alert"></div>
+        <div class="form-group"><label>Full Name</label><input type="text" id="reg-name" placeholder="Jane Smith"></div>
+        <div class="form-group"><label>Email</label><input type="email" id="reg-email" placeholder="you@example.com"></div>
+        <div class="form-group"><label>Password</label><input type="password" id="reg-pass" placeholder="At least 8 characters" onkeydown="if(event.key==='Enter')doRegister()"></div>
+        <button class="btn btn-primary" style="width:100%;padding:13px" onclick="doRegister()">Create Account</button>
+        <p class="form-link">Already have an account? <a onclick="navigate('login')">Sign in</a></p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="toast"></div>
+<script src="js/app.js"></script>
+</body>
+</html>
