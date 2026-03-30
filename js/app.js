@@ -1,137 +1,95 @@
 // ═══════════════════════════════════════════════
-// DATA STORE
+// SUPABASE CONFIG — Live Database Connection
+// ═══════════════════════════════════════════════
+const SUPABASE_URL = 'https://nhaeqaiolsnevsnivoyh.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oYWVxYWlvbHNuZXZzbml2b3loIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTMyMDAsImV4cCI6MjA5MDQ2OTIwMH0.lZbT4_fIrmx8V5M57sqqkSCw_eLV47fhNFBbt44c6ZQ';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ═══════════════════════════════════════════════
+// STATE
 // ═══════════════════════════════════════════════
 let state = {
   currentUser: null,
+  currentProfile: null,
   currentPage: 'home',
   prevPage: null,
   selectedRecipeId: null,
   currentStep: 1,
   selectedPantryIng: null,
   searchHistory: [],
-  pendingIngRows: [{name:'', qty:'', unit:'cups', notes:''}]
+  pendingIngRows: [{ name: '', qty: '', unit: 'cups' }],
+  allIngredients: [],
+  allRecipes: []
 };
 
-const SAMPLE_DATA = {
-  users: [
-    { id:1, email:'admin@pantrypal.com', password:'admin123', fullName:'Admin Chef', isStaff:true },
-    { id:2, email:'jane@example.com',    password:'jane123',  fullName:'Jane Smith',  isStaff:false },
-    { id:3, email:'marcos@example.com',  password:'marcos123',fullName:'Marcos Rivera',isStaff:false }
-  ],
-  tags: ['vegetarian','vegan','gluten-free','quick','spicy','comfort food','healthy','keto','dairy-free','Italian','Indian','Asian'],
-  ingredients: [
-    {id:1,name:'Pasta',category:'Grains'},{id:2,name:'Garlic',category:'Vegetables'},
-    {id:3,name:'Olive Oil',category:'Condiments'},{id:4,name:'Tomatoes',category:'Vegetables'},
-    {id:5,name:'Onion',category:'Vegetables'},{id:6,name:'Chicken',category:'Proteins'},
-    {id:7,name:'Heavy Cream',category:'Dairy'},{id:8,name:'Parmesan',category:'Dairy'},
-    {id:9,name:'Basil',category:'Spices'},{id:10,name:'Salt',category:'Spices'},
-    {id:11,name:'Black Pepper',category:'Spices'},{id:12,name:'Butter',category:'Dairy'},
-    {id:13,name:'Eggs',category:'Proteins'},{id:14,name:'Rice',category:'Grains'},
-    {id:15,name:'Cumin',category:'Spices'},{id:16,name:'Coconut Milk',category:'Dairy'},
-    {id:17,name:'Lemon',category:'Fruits'},{id:18,name:'Ginger',category:'Spices'},
-    {id:19,name:'Soy Sauce',category:'Condiments'},{id:20,name:'Bell Pepper',category:'Vegetables'}
-  ],
-  recipes: [
-    {
-      id:1,title:'Creamy Tuscan Pasta',cuisine:'Italian',prepTime:25,calories:520,
-      emoji:'🍝',status:'approved',authorId:2,authorName:'Jane Smith',
-      instructions:'Boil pasta until al dente.\nSauté garlic in olive oil until fragrant.\nAdd sun-dried tomatoes and heavy cream.\nSimmer for 5 minutes.\nToss pasta in the sauce.\nFinish with fresh basil and parmesan.',
-      ingredients:[{id:1,name:'Pasta',qty:'300',unit:'grams'},{id:2,name:'Garlic',qty:'4',unit:'cloves'},
-        {id:3,name:'Olive Oil',qty:'3',unit:'tbsp'},{id:7,name:'Heavy Cream',qty:'200',unit:'ml'},
-        {id:8,name:'Parmesan',qty:'50',unit:'grams'},{id:9,name:'Basil',qty:'1',unit:'handful'}],
-      tags:['Italian','comfort food','vegetarian'],rating:4.7,reviewCount:23,
-      reviews:[
-        {id:1,author:'Marcos Rivera',rating:5,comment:'Absolutely delicious! The cream sauce is perfect.',date:'2 days ago'},
-        {id:2,author:'Sara Chen',rating:4,comment:'Really tasty, I added some spinach for extra greens.',date:'1 week ago'}
-      ]
-    },
-    {
-      id:2,title:'Butter Chicken',cuisine:'Indian',prepTime:45,calories:680,
-      emoji:'🍛',status:'approved',authorId:3,authorName:'Marcos Rivera',
-      instructions:'Marinate chicken in yogurt and spices for 30 min.\nGrill or pan-fry chicken until cooked.\nMake tomato-butter sauce with onions and cream.\nAdd cooked chicken to sauce.\nSimmer 10 minutes.\nGarnish with cream and cilantro.',
-      ingredients:[{id:6,name:'Chicken',qty:'500',unit:'grams'},{id:4,name:'Tomatoes',qty:'4',unit:'pieces'},
-        {id:12,name:'Butter',qty:'3',unit:'tbsp'},{id:16,name:'Coconut Milk',qty:'200',unit:'ml'},
-        {id:15,name:'Cumin',qty:'1',unit:'tsp'},{id:18,name:'Ginger',qty:'1',unit:'tbsp'}],
-      tags:['Indian','spicy','comfort food'],rating:4.9,reviewCount:47,
-      reviews:[{id:3,author:'Lisa Park',rating:5,comment:'Better than any restaurant! So rich and flavorful.',date:'3 days ago'}]
-    },
-    {
-      id:3,title:'Avocado Toast',cuisine:'American',prepTime:10,calories:290,
-      emoji:'🥑',status:'approved',authorId:2,authorName:'Jane Smith',
-      instructions:'Toast sourdough bread slices.\nMash avocado with lemon juice.\nSeason with salt and red pepper flakes.\nSpread avocado on toast.\nTop with poached egg.\nDrizzle olive oil and serve.',
-      ingredients:[{id:17,name:'Lemon',qty:'1',unit:'pieces'},{id:3,name:'Olive Oil',qty:'1',unit:'tbsp'},
-        {id:13,name:'Eggs',qty:'2',unit:'pieces'},{id:10,name:'Salt',qty:'1',unit:'pinch'}],
-      tags:['quick','healthy','vegetarian'],rating:4.2,reviewCount:15,reviews:[]
-    },
-    {
-      id:4,title:'Chicken Fried Rice',cuisine:'Chinese',prepTime:20,calories:420,
-      emoji:'🍳',status:'approved',authorId:3,authorName:'Marcos Rivera',
-      instructions:'Cook rice and let it cool completely.\nScramble eggs in wok.\nAdd garlic, ginger and vegetables.\nAdd rice and stir-fry on high heat.\nSeason with soy sauce.\nGarnish with spring onions.',
-      ingredients:[{id:14,name:'Rice',qty:'300',unit:'grams'},{id:6,name:'Chicken',qty:'200',unit:'grams'},
-        {id:13,name:'Eggs',qty:'3',unit:'pieces'},{id:19,name:'Soy Sauce',qty:'3',unit:'tbsp'},
-        {id:2,name:'Garlic',qty:'3',unit:'cloves'},{id:20,name:'Bell Pepper',qty:'1',unit:'pieces'}],
-      tags:['Asian','quick'],rating:4.5,reviewCount:31,reviews:[]
-    },
-    {
-      id:5,title:'Greek Salad',cuisine:'Mediterranean',prepTime:15,calories:220,
-      emoji:'🥗',status:'approved',authorId:2,authorName:'Jane Smith',
-      instructions:'Chop tomatoes, cucumber and red onion.\nAdd olives and crumbled feta.\nDress with olive oil, lemon juice, oregano.\nToss gently and serve immediately.',
-      ingredients:[{id:4,name:'Tomatoes',qty:'3',unit:'pieces'},{id:3,name:'Olive Oil',qty:'4',unit:'tbsp'},
-        {id:17,name:'Lemon',qty:'1',unit:'pieces'},{id:10,name:'Salt',qty:'1',unit:'pinch'}],
-      tags:['healthy','vegetarian','quick'],rating:4.3,reviewCount:19,reviews:[]
-    },
-    {
-      id:6,title:'Mushroom Risotto',cuisine:'Italian',prepTime:40,calories:460,
-      emoji:'🍄',status:'approved',authorId:3,authorName:'Marcos Rivera',
-      instructions:'Sauté shallots in butter until soft.\nToast arborio rice for 2 minutes.\nAdd white wine and stir until absorbed.\nAdd warm broth ladle by ladle, stirring constantly.\nFold in parmesan and butter.\nSeason and serve immediately.',
-      ingredients:[{id:12,name:'Butter',qty:'50',unit:'grams'},{id:8,name:'Parmesan',qty:'80',unit:'grams'},
-        {id:2,name:'Garlic',qty:'2',unit:'cloves'},{id:5,name:'Onion',qty:'1',unit:'pieces'}],
-      tags:['Italian','vegetarian','comfort food'],rating:4.8,reviewCount:28,reviews:[]
-    },
-    {
-      id:7,title:'Tacos al Pastor',cuisine:'Mexican',prepTime:30,calories:380,
-      emoji:'🌮',status:'pending',authorId:2,authorName:'Jane Smith',
-      instructions:'Marinate pork in achiote and pineapple.\nGrill until caramelized.\nWarm tortillas.\nAssemble with salsa, onion, cilantro.\nServe with lime.',
-      ingredients:[{id:5,name:'Onion',qty:'1',unit:'pieces'},{id:17,name:'Lemon',qty:'2',unit:'pieces'}],
-      tags:['Mexican','spicy'],rating:0,reviewCount:0,reviews:[]
+// ═══════════════════════════════════════════════
+// INIT — runs on page load
+// ═══════════════════════════════════════════════
+async function init() {
+  showLoading(true);
+  // Check if user is already logged in
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    state.currentUser = session.user;
+    await loadProfile();
+  }
+  await loadIngredients();
+  updateNavAuth();
+  await renderHome();
+  showLoading(false);
+
+  // Listen for auth changes (login/logout)
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN') {
+      state.currentUser = session.user;
+      await loadProfile();
+      updateNavAuth();
+    } else if (event === 'SIGNED_OUT') {
+      state.currentUser = null;
+      state.currentProfile = null;
+      updateNavAuth();
     }
-  ],
-  pantry: [
-    {id:1,ingId:1,name:'Pasta',qty:'400',unit:'grams'},
-    {id:2,ingId:2,name:'Garlic',qty:'6',unit:'cloves'},
-    {id:3,ingId:3,name:'Olive Oil',qty:'1',unit:'cups'}
-  ]
-};
+  });
+}
 
-let db = JSON.parse(JSON.stringify(SAMPLE_DATA));
-let nextRecipeId = 8;
-let nextIngId = 21;
-let nextPantryId = 4;
+async function loadProfile() {
+  const { data } = await sb.from('profiles').select('*').eq('id', state.currentUser.id).single();
+  state.currentProfile = data;
+}
+
+async function loadIngredients() {
+  const { data } = await sb.from('ingredients').select('*').order('name');
+  state.allIngredients = data || [];
+}
+
+function showLoading(on) {
+  document.getElementById('loading-overlay').style.display = on ? 'flex' : 'none';
+}
 
 // ═══════════════════════════════════════════════
 // NAVIGATION
 // ═══════════════════════════════════════════════
-function navigate(page) {
+async function navigate(page) {
   state.prevPage = state.currentPage;
   state.currentPage = page;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
   document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-  if(page==='home') document.querySelectorAll('.nav-link')[0].classList.add('active');
-  if(page==='create') document.querySelectorAll('.nav-link')[1].classList.add('active');
-  if(page==='my-recipes') document.querySelectorAll('.nav-link')[2].classList.add('active');
-  if(page==='pantry') document.querySelectorAll('.nav-link')[3].classList.add('active');
-  window.scrollTo(0,0);
-  if(page==='home') renderHome();
-  if(page==='my-recipes') renderMyRecipes();
-  if(page==='pantry') renderPantry();
-  if(page==='admin') renderAdmin();
-  if(page==='create') { state.currentStep=1; renderStep(); resetCreateForm(); }
-  if(page==='search') renderSearchPage();
+  if (page === 'home') document.querySelectorAll('.nav-link')[0].classList.add('active');
+  if (page === 'create') document.querySelectorAll('.nav-link')[1].classList.add('active');
+  if (page === 'my-recipes') document.querySelectorAll('.nav-link')[2].classList.add('active');
+  if (page === 'pantry') document.querySelectorAll('.nav-link')[3].classList.add('active');
+  window.scrollTo(0, 0);
+  if (page === 'home') await renderHome();
+  if (page === 'my-recipes') await renderMyRecipes();
+  if (page === 'pantry') await renderPantry();
+  if (page === 'admin') await renderAdmin();
+  if (page === 'create') { state.currentStep = 1; renderStep(); resetCreateForm(); }
+  if (page === 'search') await renderSearchPage();
 }
 
 function requireAuth(page) {
-  if(!state.currentUser) { navigate('login'); return; }
+  if (!state.currentUser) { navigate('login'); return; }
   navigate(page);
 }
 
@@ -143,62 +101,60 @@ function goBack() { navigate(state.prevPage || 'home'); }
 function updateNavAuth() {
   const a = document.getElementById('nav-actions');
   const adminLink = document.getElementById('admin-nav-link');
-  if(state.currentUser) {
-    a.innerHTML = `<div class="user-avatar" onclick="showUserMenu()" title="${state.currentUser.fullName}">${state.currentUser.fullName.split(' ').map(n=>n[0]).join('').toUpperCase()}</div>
-    <button class="btn btn-secondary btn-sm" onclick="doLogout()">Sign Out</button>`;
-    adminLink.style.display = state.currentUser.isStaff ? 'block' : 'none';
+  if (state.currentUser && state.currentProfile) {
+    const initials = state.currentProfile.full_name.split(' ').map(n => n[0]).join('').toUpperCase();
+    a.innerHTML = `<div class="user-avatar" title="${state.currentProfile.full_name}">${initials}</div>
+      <button class="btn btn-secondary btn-sm" onclick="doLogout()">Sign Out</button>`;
+    adminLink.style.display = state.currentProfile.is_staff ? 'block' : 'none';
   } else {
     a.innerHTML = `<button class="btn btn-secondary btn-sm" onclick="navigate('login')">Sign In</button>
-    <button class="btn btn-primary btn-sm" onclick="navigate('register')">Get Started</button>`;
+      <button class="btn btn-primary btn-sm" onclick="navigate('register')">Get Started</button>`;
     adminLink.style.display = 'none';
   }
 }
 
-function doLogin() {
+async function doLogin() {
   const email = document.getElementById('login-email').value.trim();
-  const pass  = document.getElementById('login-pass').value;
-  const user = db.users.find(u => u.email === email && u.password === pass);
-  if(!user) {
-    document.getElementById('login-alert').innerHTML = '<div class="alert alert-error">Invalid email or password.</div>';
+  const pass = document.getElementById('login-pass').value;
+  const alertEl = document.getElementById('login-alert');
+  alertEl.innerHTML = '';
+
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) {
+    alertEl.innerHTML = `<div class="alert alert-error">Invalid email or password.</div>`;
     return;
   }
-  state.currentUser = user;
-  updateNavAuth();
-  showToast(`Welcome back, ${user.fullName.split(' ')[0]}! 👋`);
+  showToast(`Welcome back! 👋`);
   navigate('home');
 }
 
-function demoLogin(type) {
-  const user = type==='admin' ? db.users[0] : db.users[1];
-  state.currentUser = user;
-  updateNavAuth();
-  showToast(`Signed in as ${user.fullName} 👋`);
-  navigate('home');
-}
-
-function doRegister() {
-  const name  = document.getElementById('reg-name').value.trim();
+async function doRegister() {
+  const name = document.getElementById('reg-name').value.trim();
   const email = document.getElementById('reg-email').value.trim();
-  const pass  = document.getElementById('reg-pass').value;
-  if(!name || !email || !pass) {
-    document.getElementById('register-alert').innerHTML = '<div class="alert alert-error">Please fill in all fields.</div>';
-    return;
+  const pass = document.getElementById('reg-pass').value;
+  const alertEl = document.getElementById('register-alert');
+  alertEl.innerHTML = '';
+
+  if (!name || !email || !pass) {
+    alertEl.innerHTML = `<div class="alert alert-error">Please fill in all fields.</div>`; return;
   }
-  if(db.users.find(u=>u.email===email)) {
-    document.getElementById('register-alert').innerHTML = '<div class="alert alert-error">An account with this email already exists.</div>';
-    return;
+  if (pass.length < 6) {
+    alertEl.innerHTML = `<div class="alert alert-error">Password must be at least 6 characters.</div>`; return;
   }
-  const newUser = {id: db.users.length+1, email, password:pass, fullName:name, isStaff:false};
-  db.users.push(newUser);
-  state.currentUser = newUser;
-  updateNavAuth();
+
+  const { data, error } = await sb.auth.signUp({ email, password: pass });
+  if (error) {
+    alertEl.innerHTML = `<div class="alert alert-error">${error.message}</div>`; return;
+  }
+
+  // Create profile row
+  await sb.from('profiles').insert({ id: data.user.id, full_name: name, email, is_staff: false });
   showToast(`Welcome to PantryPal, ${name.split(' ')[0]}! 🎉`);
   navigate('home');
 }
 
-function doLogout() {
-  state.currentUser = null;
-  updateNavAuth();
+async function doLogout() {
+  await sb.auth.signOut();
   showToast('Signed out. See you soon!');
   navigate('home');
 }
@@ -206,80 +162,94 @@ function doLogout() {
 // ═══════════════════════════════════════════════
 // HOME
 // ═══════════════════════════════════════════════
-function renderHome() {
-  const cuisines = [...new Set(db.recipes.filter(r=>r.status==='approved').map(r=>r.cuisine))];
+async function renderHome() {
+  showLoading(true);
+  const { data: recipes } = await sb.from('recipes')
+    .select('*, recipe_ingredients(*, ingredients(name))')
+    .eq('status', 'approved')
+    .order('created_at', { ascending: false });
+  state.allRecipes = recipes || [];
+  showLoading(false);
+
+  const cuisines = [...new Set(state.allRecipes.map(r => r.cuisine))];
   const fc = document.getElementById('cuisine-filters');
   fc.innerHTML = `<span style="font-size:13px;font-weight:700;color:var(--text-muted);margin-right:4px;">Cuisine:</span>
     <div class="filter-pill active" onclick="filterCuisine(this,'')">All</div>
-    ${cuisines.map(c=>`<div class="filter-pill" onclick="filterCuisine(this,'${c}')">${c}</div>`).join('')}`;
-  renderRecipeGrid(db.recipes.filter(r=>r.status==='approved'), 'home-recipe-grid');
+    ${cuisines.map(c => `<div class="filter-pill" onclick="filterCuisine(this,'${c}')">${c}</div>`).join('')}`;
+  renderRecipeGrid(state.allRecipes, 'home-recipe-grid');
 }
 
 function filterCuisine(el, cuisine) {
-  document.querySelectorAll('.filter-pill').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
   el.classList.add('active');
-  const filtered = cuisine ? db.recipes.filter(r=>r.status==='approved'&&r.cuisine===cuisine)
-                           : db.recipes.filter(r=>r.status==='approved');
+  const filtered = cuisine ? state.allRecipes.filter(r => r.cuisine === cuisine) : state.allRecipes;
   renderRecipeGrid(filtered, 'home-recipe-grid');
 }
 
 function renderRecipeGrid(recipes, containerId) {
   const el = document.getElementById(containerId);
-  if(!recipes.length) {
+  if (!recipes.length) {
     el.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="emoji">🍽️</div><h3>No recipes found</h3><p>Try a different search or filter.</p></div>`;
     return;
   }
   el.innerHTML = recipes.map(r => `
-    <div class="recipe-card" onclick="openRecipe(${r.id})">
+    <div class="recipe-card" onclick="openRecipe('${r.id}')">
       <div class="recipe-card-img">${r.emoji || '🍽️'}</div>
       <div class="recipe-card-body">
         <div class="recipe-card-cuisine">${r.cuisine}</div>
         <div class="recipe-card-title">${r.title}</div>
         <div class="recipe-card-meta">
-          <span>⏱ ${r.prepTime} min</span>
+          <span>⏱ ${r.prep_time} min</span>
           ${r.calories ? `<span>🔥 ${r.calories} cal</span>` : ''}
-          ${r.rating > 0 ? `<span><span class="stars">★</span> ${r.rating.toFixed(1)} (${r.reviewCount})</span>` : '<span>No reviews yet</span>'}
+          ${r.avg_rating ? `<span><span class="stars">★</span> ${parseFloat(r.avg_rating).toFixed(1)}</span>` : '<span>No reviews</span>'}
         </div>
-        <div class="recipe-card-tags">${(r.tags||[]).slice(0,3).map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+        <div class="recipe-card-tags">${(r.tags || []).slice(0, 3).map(t => `<span class="tag">${t}</span>`).join('')}</div>
       </div>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
 
 // ═══════════════════════════════════════════════
 // RECIPE DETAIL
 // ═══════════════════════════════════════════════
-function openRecipe(id) {
-  const r = db.recipes.find(r=>r.id===id);
-  if(!r) return;
+async function openRecipe(id) {
+  showLoading(true);
+  const { data: r } = await sb.from('recipes')
+    .select('*, recipe_ingredients(qty, unit, ingredients(name)), reviews(*, profiles(full_name))')
+    .eq('id', id)
+    .single();
+  showLoading(false);
+  if (!r) return;
   state.selectedRecipeId = id;
-  const steps = r.instructions.split('\n').filter(s=>s.trim());
-  const avgRating = r.reviews.length ? (r.reviews.reduce((s,rv)=>s+rv.rating,0)/r.reviews.length).toFixed(1) : 'No reviews';
+
+  const steps = (r.instructions || '').split('\n').filter(s => s.trim());
+  const avgRating = r.reviews?.length
+    ? (r.reviews.reduce((s, rv) => s + rv.rating, 0) / r.reviews.length).toFixed(1)
+    : null;
+
   document.getElementById('detail-content').innerHTML = `
     <div class="detail-hero">
-      <div class="detail-hero-img">${r.emoji||'🍽️'}</div>
+      <div class="detail-hero-img">${r.emoji || '🍽️'}</div>
       <div class="detail-hero-body">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
           <h1>${r.title}</h1>
-          <span class="badge badge-${r.status}">${r.status.charAt(0).toUpperCase()+r.status.slice(1)}</span>
+          <span class="badge badge-${r.status}">${r.status.charAt(0).toUpperCase() + r.status.slice(1)}</span>
         </div>
         <div class="detail-meta">
           <div class="detail-meta-item"><span class="label">Cuisine</span><span class="value">${r.cuisine}</span></div>
-          <div class="detail-meta-item"><span class="label">Prep Time</span><span class="value">${r.prepTime} min</span></div>
+          <div class="detail-meta-item"><span class="label">Prep Time</span><span class="value">${r.prep_time} min</span></div>
           ${r.calories ? `<div class="detail-meta-item"><span class="label">Calories</span><span class="value">${r.calories} kcal</span></div>` : ''}
-          <div class="detail-meta-item"><span class="label">Rating</span><span class="value">★ ${avgRating}${r.reviews.length ? ` (${r.reviews.length})` : ''}</span></div>
-          <div class="detail-meta-item"><span class="label">By</span><span class="value">${r.authorName}</span></div>
+          <div class="detail-meta-item"><span class="label">Rating</span><span class="value">${avgRating ? `★ ${avgRating} (${r.reviews.length})` : 'No reviews'}</span></div>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">${(r.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">${(r.tags || []).map(t => `<span class="tag">${t}</span>`).join('')}</div>
       </div>
     </div>
     <div class="detail-grid">
       <div>
         <div class="section-card">
           <h3>Ingredients</h3>
-          ${r.ingredients.map(i=>`
+          ${(r.recipe_ingredients || []).map(i => `
             <div class="ingredient-row">
-              <span class="ingredient-name">${i.name}</span>
+              <span class="ingredient-name">${i.ingredients?.name || ''}</span>
               <span class="ingredient-qty">${i.qty} ${i.unit}</span>
             </div>`).join('')}
         </div>
@@ -288,54 +258,56 @@ function openRecipe(id) {
         <div class="section-card">
           <h3>Instructions</h3>
           <ol class="instructions-list">
-            ${steps.map((s,i)=>`<li><span class="step-num">${i+1}</span><span>${s}</span></li>`).join('')}
+            ${steps.map((s, i) => `<li><span class="step-num">${i + 1}</span><span>${s}</span></li>`).join('')}
           </ol>
         </div>
         <div class="section-card">
-          <h3>Reviews (${r.reviews.length})</h3>
-          ${r.reviews.length ? r.reviews.map(rv=>`
+          <h3>Reviews (${r.reviews?.length || 0})</h3>
+          ${r.reviews?.length ? r.reviews.map(rv => `
             <div class="review-item">
               <div class="review-header">
-                <span class="reviewer-name">${rv.author}</span>
+                <span class="reviewer-name">${rv.profiles?.full_name || 'Anonymous'}</span>
                 <div>
-                  <span class="stars">${'★'.repeat(rv.rating)}<span style="color:#ddd">${'★'.repeat(5-rv.rating)}</span></span>
-                  <span class="review-date" style="margin-left:8px">${rv.date}</span>
+                  <span class="stars">${'★'.repeat(rv.rating)}<span style="color:#ddd">${'★'.repeat(5 - rv.rating)}</span></span>
+                  <span class="review-date" style="margin-left:8px">${new Date(rv.created_at).toLocaleDateString()}</span>
                 </div>
               </div>
               <div class="review-text">${rv.comment}</div>
-            </div>`).join('') : '<p style="color:var(--text-muted);font-size:14px">No reviews yet. Be the first to review!</p>'}
+            </div>`).join('') : '<p style="color:var(--text-muted);font-size:14px">No reviews yet. Be the first!</p>'}
           ${state.currentUser ? `
-          <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--bg)">
-            <h4 style="font-size:16px;margin-bottom:14px;font-family:'Nunito',sans-serif;font-weight:700">Write a Review</h4>
-            <div style="display:flex;gap:6px;margin-bottom:12px" id="star-pick">
-              ${[1,2,3,4,5].map(n=>`<span style="font-size:24px;cursor:pointer;color:#ddd" onclick="pickStar(${n})" data-star="${n}">★</span>`).join('')}
-            </div>
-            <div class="form-group"><textarea id="review-text" rows="3" placeholder="Share your experience with this recipe…"></textarea></div>
-            <button class="btn btn-primary btn-sm" onclick="submitReview(${r.id})">Post Review</button>
-          </div>` : `<p style="margin-top:16px;font-size:14px;color:var(--text-muted)"><a onclick="navigate('login')" style="color:var(--primary);cursor:pointer;font-weight:600">Sign in</a> to leave a review.</p>`}
+            <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--bg)">
+              <h4 style="font-size:16px;margin-bottom:14px;font-family:'Nunito',sans-serif;font-weight:700">Write a Review</h4>
+              <div style="display:flex;gap:6px;margin-bottom:12px" id="star-pick">
+                ${[1,2,3,4,5].map(n => `<span style="font-size:24px;cursor:pointer;color:#ddd" onclick="pickStar(${n})" data-star="${n}">★</span>`).join('')}
+              </div>
+              <div class="form-group"><textarea id="review-text" rows="3" placeholder="Share your experience…"></textarea></div>
+              <button class="btn btn-primary btn-sm" onclick="submitReview('${r.id}')">Post Review</button>
+            </div>` : `<p style="margin-top:16px;font-size:14px;color:var(--text-muted)"><a onclick="navigate('login')" style="color:var(--primary);cursor:pointer;font-weight:600">Sign in</a> to leave a review.</p>`}
         </div>
       </div>
-    </div>
-  `;
+    </div>`;
   navigate('detail');
 }
 
 let selectedStar = 0;
 function pickStar(n) {
   selectedStar = n;
-  document.querySelectorAll('#star-pick span').forEach((s,i)=>{
+  document.querySelectorAll('#star-pick span').forEach((s, i) => {
     s.style.color = i < n ? 'var(--amber)' : '#ddd';
   });
 }
 
-function submitReview(recipeId) {
-  if(!selectedStar) { showToast('Please select a star rating.'); return; }
+async function submitReview(recipeId) {
+  if (!selectedStar) { showToast('Please select a star rating.'); return; }
   const text = document.getElementById('review-text').value.trim();
-  if(!text) { showToast('Please write a comment.'); return; }
-  const recipe = db.recipes.find(r=>r.id===recipeId);
-  recipe.reviews.push({id: Date.now(), author: state.currentUser.fullName, rating: selectedStar, comment: text, date: 'Just now'});
-  recipe.reviewCount = recipe.reviews.length;
-  recipe.rating = parseFloat((recipe.reviews.reduce((s,r)=>s+r.rating,0)/recipe.reviews.length).toFixed(1));
+  if (!text) { showToast('Please write a comment.'); return; }
+
+  await sb.from('reviews').insert({
+    recipe_id: recipeId,
+    user_id: state.currentUser.id,
+    rating: selectedStar,
+    comment: text
+  });
   selectedStar = 0;
   showToast('Review posted! ⭐');
   openRecipe(recipeId);
@@ -344,32 +316,40 @@ function submitReview(recipeId) {
 // ═══════════════════════════════════════════════
 // SEARCH
 // ═══════════════════════════════════════════════
-function doSearch() {
+async function doSearch() {
   const q = document.getElementById('home-search-input').value.trim();
-  if(!q) return;
-  if(state.currentUser) {
-    state.searchHistory.unshift({query:q, time: new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})});
-    if(state.searchHistory.length > 10) state.searchHistory.pop();
+  if (!q) return;
+  if (state.currentUser) {
+    state.searchHistory.unshift({ query: q, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
+    if (state.searchHistory.length > 10) state.searchHistory.pop();
   }
   state.lastSearch = q;
   navigate('search');
 }
 
-function renderSearchPage() {
+async function renderSearchPage() {
   const q = state.lastSearch || '';
   document.getElementById('search-subtitle').textContent = q ? `Showing results for "${q}"` : 'All recipes';
-  const results = q ? db.recipes.filter(r=>r.status==='approved' && (
+
+  showLoading(true);
+  const { data: recipes } = await sb.from('recipes')
+    .select('*, recipe_ingredients(*, ingredients(name))')
+    .eq('status', 'approved');
+  showLoading(false);
+
+  const results = q ? (recipes || []).filter(r =>
     r.title.toLowerCase().includes(q.toLowerCase()) ||
     r.cuisine.toLowerCase().includes(q.toLowerCase()) ||
-    (r.tags||[]).some(t=>t.toLowerCase().includes(q.toLowerCase())) ||
-    r.ingredients.some(i=>i.name.toLowerCase().includes(q.toLowerCase()))
-  )) : db.recipes.filter(r=>r.status==='approved');
+    (r.tags || []).some(t => t.toLowerCase().includes(q.toLowerCase()))
+  ) : (recipes || []);
+
   renderRecipeGrid(results, 'search-results-grid');
+
   const hcard = document.getElementById('history-card');
   const hlist = document.getElementById('search-history-list');
-  if(state.currentUser && state.searchHistory.length) {
+  if (state.currentUser && state.searchHistory.length) {
     hcard.style.display = 'block';
-    hlist.innerHTML = state.searchHistory.map((h,i)=>`
+    hlist.innerHTML = state.searchHistory.map((h, i) => `
       <div class="history-item" onclick="rerunSearch('${h.query}')">
         <span class="history-query">🔍 ${h.query}</span>
         <div style="display:flex;align-items:center;gap:8px">
@@ -381,110 +361,139 @@ function renderSearchPage() {
 }
 
 function rerunSearch(q) { state.lastSearch = q; document.getElementById('home-search-input').value = q; renderSearchPage(); }
-function deleteHistory(e, idx) { e.stopPropagation(); state.searchHistory.splice(idx,1); renderSearchPage(); }
+function deleteHistory(e, idx) { e.stopPropagation(); state.searchHistory.splice(idx, 1); renderSearchPage(); }
 
 // ═══════════════════════════════════════════════
 // CREATE RECIPE
 // ═══════════════════════════════════════════════
 function resetCreateForm() {
-  ['r-title','r-instructions','r-tags'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  ['r-cal','r-prep'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  document.getElementById('submit-info').style.display='none';
-  state.pendingIngRows = [{name:'', qty:'', unit:'cups', notes:''}];
+  ['r-title', 'r-instructions', 'r-tags'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  ['r-cal', 'r-prep'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  document.getElementById('submit-info').style.display = 'none';
+  state.pendingIngRows = [{ name: '', qty: '', unit: 'cups' }];
   renderIngRows();
 }
 
 function nextStep(n) {
-  if(n===2) {
-    if(!document.getElementById('r-title').value.trim()) { showToast('Please enter a recipe title.'); return; }
-    if(!document.getElementById('r-cuisine').value) { showToast('Please select a cuisine.'); return; }
+  if (n === 2) {
+    if (!document.getElementById('r-title').value.trim()) { showToast('Please enter a recipe title.'); return; }
+    if (!document.getElementById('r-cuisine').value) { showToast('Please select a cuisine.'); return; }
   }
   state.currentStep = n;
   renderStep();
 }
 
 function renderStep() {
-  for(let i=1;i<=3;i++) {
-    document.getElementById('step'+i).classList.toggle('active', i===state.currentStep);
-    const dot = document.getElementById('sdot'+i);
-    dot.classList.toggle('active', i===state.currentStep);
-    dot.classList.toggle('done', i<state.currentStep);
-    if(i<3) document.getElementById('sline'+i).classList.toggle('done', i<state.currentStep);
+  for (let i = 1; i <= 3; i++) {
+    document.getElementById('step' + i).classList.toggle('active', i === state.currentStep);
+    const dot = document.getElementById('sdot' + i);
+    dot.classList.toggle('active', i === state.currentStep);
+    dot.classList.toggle('done', i < state.currentStep);
+    if (i < 3) document.getElementById('sline' + i).classList.toggle('done', i < state.currentStep);
   }
-  if(state.currentStep===2) renderIngRows();
+  if (state.currentStep === 2) renderIngRows();
 }
 
-function addIngRow() { state.pendingIngRows.push({name:'',qty:'',unit:'cups',notes:''}); renderIngRows(); }
+function addIngRow() { state.pendingIngRows.push({ name: '', qty: '', unit: 'cups' }); renderIngRows(); }
 
 function renderIngRows() {
   const el = document.getElementById('ingredient-rows');
-  if(!el) return;
-  el.innerHTML = state.pendingIngRows.map((row,i)=>`
+  if (!el) return;
+  el.innerHTML = state.pendingIngRows.map((row, i) => `
     <div class="add-ingredient-row">
       <div class="form-group" style="margin:0">
-        <input type="text" placeholder="Ingredient name" value="${row.name}" oninput="state.pendingIngRows[${i}].name=this.value">
+        <input type="text" placeholder="Ingredient name" value="${row.name}" oninput="state.pendingIngRows[${i}].name=this.value" list="ing-suggestions">
       </div>
       <div class="form-group" style="margin:0">
         <input type="text" placeholder="Qty" value="${row.qty}" oninput="state.pendingIngRows[${i}].qty=this.value">
       </div>
       <div class="form-group" style="margin:0">
         <select oninput="state.pendingIngRows[${i}].unit=this.value">
-          ${['cups','grams','kg','ml','tbsp','tsp','pieces','oz'].map(u=>`<option${u===row.unit?' selected':''}>${u}</option>`).join('')}
+          ${['cups','grams','kg','ml','tbsp','tsp','pieces','oz'].map(u => `<option${u === row.unit ? ' selected' : ''}>${u}</option>`).join('')}
         </select>
       </div>
       <button class="btn btn-danger btn-sm" onclick="removeIngRow(${i})">✕</button>
     </div>`).join('');
 }
 
-function removeIngRow(i) { if(state.pendingIngRows.length>1) { state.pendingIngRows.splice(i,1); renderIngRows(); } }
+function removeIngRow(i) { if (state.pendingIngRows.length > 1) { state.pendingIngRows.splice(i, 1); renderIngRows(); } }
 
-function submitRecipe() {
+async function submitRecipe() {
   const title = document.getElementById('r-title').value.trim();
   const cuisine = document.getElementById('r-cuisine').value;
   const prep = parseInt(document.getElementById('r-prep').value) || 30;
   const cal = parseInt(document.getElementById('r-cal').value) || null;
   const instructions = document.getElementById('r-instructions').value.trim();
-  const tags = document.getElementById('r-tags').value.split(',').map(t=>t.trim()).filter(Boolean);
+  const tags = document.getElementById('r-tags').value.split(',').map(t => t.trim()).filter(Boolean);
   const emoji = document.getElementById('r-emoji').value;
-  const ingredients = state.pendingIngRows.filter(r=>r.name.trim()).map((r,i)=>({id:nextIngId+i,name:r.name,qty:r.qty||'1',unit:r.unit}));
-  const newRecipe = {
-    id: nextRecipeId++, title, cuisine, prepTime:prep, calories:cal,
-    emoji, status:'pending', authorId:state.currentUser.id, authorName:state.currentUser.fullName,
-    instructions, ingredients, tags, rating:0, reviewCount:0, reviews:[]
-  };
-  db.recipes.push(newRecipe);
-  document.getElementById('submit-info').style.display='block';
+
+  showLoading(true);
+
+  // Insert recipe
+  const { data: recipe, error } = await sb.from('recipes').insert({
+    title, cuisine, prep_time: prep, calories: cal,
+    instructions, tags, emoji,
+    status: 'pending',
+    author_id: state.currentUser.id
+  }).select().single();
+
+  if (error) { showLoading(false); showToast('Error submitting recipe. Try again.'); return; }
+
+  // Insert ingredients — find or create each one
+  for (const row of state.pendingIngRows.filter(r => r.name.trim())) {
+    let ing = state.allIngredients.find(i => i.name.toLowerCase() === row.name.toLowerCase());
+    if (!ing) {
+      const { data: newIng } = await sb.from('ingredients').insert({ name: row.name, category: 'Other' }).select().single();
+      ing = newIng;
+      state.allIngredients.push(ing);
+    }
+    await sb.from('recipe_ingredients').insert({
+      recipe_id: recipe.id,
+      ingredient_id: ing.id,
+      qty: row.qty || '1',
+      unit: row.unit
+    });
+  }
+
+  showLoading(false);
+  document.getElementById('submit-info').style.display = 'block';
   showToast('Recipe submitted for review! 🎉');
 }
 
 // ═══════════════════════════════════════════════
 // MY RECIPES
 // ═══════════════════════════════════════════════
-function renderMyRecipes() {
-  if(!state.currentUser) return;
-  const mine = db.recipes.filter(r=>r.authorId===state.currentUser.id);
+async function renderMyRecipes() {
+  if (!state.currentUser) return;
+  showLoading(true);
+  const { data: mine } = await sb.from('recipes')
+    .select('*')
+    .eq('author_id', state.currentUser.id)
+    .order('created_at', { ascending: false });
+  showLoading(false);
+
   const el = document.getElementById('my-recipes-list');
-  if(!mine.length) {
-    el.innerHTML = `<div class="empty-state"><div class="emoji">📝</div><h3>No recipes yet</h3><p>Share your first recipe with the community!</p><br><button class="btn btn-primary" onclick="navigate('create')">Share a Recipe</button></div>`;
+  if (!mine?.length) {
+    el.innerHTML = `<div class="empty-state"><div class="emoji">📝</div><h3>No recipes yet</h3><p>Share your first recipe!</p><br><button class="btn btn-primary" onclick="navigate('create')">Share a Recipe</button></div>`;
     return;
   }
-  el.innerHTML = mine.map(r=>`
+  el.innerHTML = mine.map(r => `
     <div class="my-recipe-row">
-      <div class="my-recipe-emoji">${r.emoji||'🍽️'}</div>
+      <div class="my-recipe-emoji">${r.emoji || '🍽️'}</div>
       <div class="my-recipe-info">
         <div class="my-recipe-title">${r.title}</div>
-        <div class="my-recipe-sub">${r.cuisine} · ${r.prepTime} min · <span class="badge badge-${r.status}">${r.status}</span></div>
+        <div class="my-recipe-sub">${r.cuisine} · ${r.prep_time} min · <span class="badge badge-${r.status}">${r.status}</span></div>
       </div>
       <div class="my-recipe-actions">
-        <button class="btn btn-secondary btn-sm" onclick="openRecipe(${r.id})">View</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteMyRecipe(${r.id})">Delete</button>
+        <button class="btn btn-secondary btn-sm" onclick="openRecipe('${r.id}')">View</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteMyRecipe('${r.id}')">Delete</button>
       </div>
     </div>`).join('');
 }
 
-function deleteMyRecipe(id) {
-  if(!confirm('Delete this recipe?')) return;
-  db.recipes = db.recipes.filter(r=>r.id!==id);
+async function deleteMyRecipe(id) {
+  if (!confirm('Delete this recipe?')) return;
+  await sb.from('recipes').delete().eq('id', id);
   showToast('Recipe deleted.');
   renderMyRecipes();
 }
@@ -494,68 +503,101 @@ function deleteMyRecipe(id) {
 // ═══════════════════════════════════════════════
 function searchIngredients(q) {
   const dd = document.getElementById('ing-dropdown');
-  if(!q.trim()) { dd.style.display='none'; return; }
-  const matches = db.ingredients.filter(i=>i.name.toLowerCase().includes(q.toLowerCase())).slice(0,6);
-  if(!matches.length) { dd.style.display='none'; return; }
-  dd.style.display='block';
-  dd.innerHTML = matches.map(i=>`<div class="dropdown-item" onclick="selectIngredient(${i.id},'${i.name}')">${i.name} <span style="font-size:11px;color:var(--text-muted)">${i.category}</span></div>`).join('');
+  if (!q.trim()) { dd.style.display = 'none'; return; }
+  const matches = state.allIngredients.filter(i => i.name.toLowerCase().includes(q.toLowerCase())).slice(0, 6);
+  if (!matches.length) { dd.style.display = 'none'; return; }
+  dd.style.display = 'block';
+  dd.innerHTML = matches.map(i => `<div class="dropdown-item" onclick="selectIngredient('${i.id}','${i.name}')">${i.name} <span style="font-size:11px;color:var(--text-muted)">${i.category}</span></div>`).join('');
 }
 
 function selectIngredient(id, name) {
-  state.selectedPantryIng = {id, name};
+  state.selectedPantryIng = { id, name };
   document.getElementById('pantry-search').value = name;
   document.getElementById('ing-dropdown').style.display = 'none';
 }
 
-function addToPantry() {
-  if(!state.selectedPantryIng) { showToast('Please search and select an ingredient.'); return; }
+async function addToPantry() {
+  if (!state.selectedPantryIng) { showToast('Please search and select an ingredient.'); return; }
   const qty = document.getElementById('pantry-qty').value.trim();
   const unit = document.getElementById('pantry-unit').value;
-  if(!qty) { showToast('Please enter a quantity.'); return; }
-  const existing = db.pantry.find(p=>p.ingId===state.selectedPantryIng.id);
-  if(existing) { existing.qty = qty; existing.unit = unit; }
-  else db.pantry.push({id:nextPantryId++, ingId:state.selectedPantryIng.id, name:state.selectedPantryIng.name, qty, unit});
+  if (!qty) { showToast('Please enter a quantity.'); return; }
+
+  // Upsert — update if exists, insert if not
+  const { data: existing } = await sb.from('pantry')
+    .select('id')
+    .eq('user_id', state.currentUser.id)
+    .eq('ingredient_id', state.selectedPantryIng.id)
+    .single();
+
+  if (existing) {
+    await sb.from('pantry').update({ qty, unit }).eq('id', existing.id);
+  } else {
+    await sb.from('pantry').insert({
+      user_id: state.currentUser.id,
+      ingredient_id: state.selectedPantryIng.id,
+      qty, unit
+    });
+  }
+
+  const ingName = state.selectedPantryIng.name;
   state.selectedPantryIng = null;
   document.getElementById('pantry-search').value = '';
   document.getElementById('pantry-qty').value = '';
-  showToast(`${state.selectedPantryIng?.name || 'Ingredient'} added to pantry! ✅`);
+  showToast(`${ingName} added to pantry! ✅`);
   renderPantry();
 }
 
-function renderPantry() {
+async function renderPantry() {
+  if (!state.currentUser) return;
+  showLoading(true);
+  const { data: pantry } = await sb.from('pantry')
+    .select('*, ingredients(name, category)')
+    .eq('user_id', state.currentUser.id);
+  showLoading(false);
+
   const el = document.getElementById('pantry-list');
   const count = document.getElementById('pantry-count');
-  if(!db.pantry.length) {
+  if (!pantry?.length) {
     el.innerHTML = '<p style="color:var(--text-muted);font-size:14px">Your pantry is empty. Add some ingredients!</p>';
     count.textContent = '';
     return;
   }
-  count.textContent = `(${db.pantry.length} items)`;
-  el.innerHTML = db.pantry.map(p=>`
+  count.textContent = `(${pantry.length} items)`;
+  el.innerHTML = pantry.map(p => `
     <div class="pantry-item">
       <div>
-        <div class="pantry-item-name">${p.name}</div>
+        <div class="pantry-item-name">${p.ingredients?.name}</div>
         <div class="pantry-item-qty">${p.qty} ${p.unit}</div>
       </div>
       <div class="pantry-actions">
-        <button class="icon-btn" onclick="removePantryItem(${p.id})">🗑️</button>
+        <button class="icon-btn" onclick="removePantryItem('${p.id}')">🗑️</button>
       </div>
     </div>`).join('');
 }
 
-function removePantryItem(id) {
-  db.pantry = db.pantry.filter(p=>p.id!==id);
+async function removePantryItem(id) {
+  await sb.from('pantry').delete().eq('id', id);
   showToast('Removed from pantry.');
   renderPantry();
 }
 
-function findPantryRecipes() {
-  const pantryNames = db.pantry.map(p=>p.name.toLowerCase());
-  const scored = db.recipes.filter(r=>r.status==='approved').map(r=>{
-    const matches = r.ingredients.filter(i=>pantryNames.includes(i.name.toLowerCase())).length;
-    return {...r, matchScore:matches};
-  }).filter(r=>r.matchScore>0).sort((a,b)=>b.matchScore-a.matchScore);
-  state.lastSearch = `Pantry (${db.pantry.length} items)`;
+async function findPantryRecipes() {
+  showLoading(true);
+  const { data: pantry } = await sb.from('pantry')
+    .select('ingredient_id')
+    .eq('user_id', state.currentUser.id);
+  const { data: recipes } = await sb.from('recipes')
+    .select('*, recipe_ingredients(ingredient_id)')
+    .eq('status', 'approved');
+  showLoading(false);
+
+  const myIngIds = new Set((pantry || []).map(p => p.ingredient_id));
+  const scored = (recipes || []).map(r => {
+    const matches = (r.recipe_ingredients || []).filter(i => myIngIds.has(i.ingredient_id)).length;
+    return { ...r, matchScore: matches };
+  }).filter(r => r.matchScore > 0).sort((a, b) => b.matchScore - a.matchScore);
+
+  state.lastSearch = null;
   navigate('search');
   document.getElementById('search-subtitle').textContent = `Recipes you can make with your pantry — sorted by ingredient match`;
   renderRecipeGrid(scored, 'search-results-grid');
@@ -566,57 +608,73 @@ function findPantryRecipes() {
 // ADMIN
 // ═══════════════════════════════════════════════
 function adminTab(tab) {
-  document.querySelectorAll('.admin-tab').forEach((t,i)=>t.classList.toggle('active', ['pending','users','ingredients'][i]===tab));
-  document.querySelectorAll('.admin-panel').forEach(p=>p.classList.remove('active'));
-  document.getElementById('admin-'+tab).classList.add('active');
+  document.querySelectorAll('.admin-tab').forEach((t, i) => t.classList.toggle('active', ['pending', 'users', 'ingredients'][i] === tab));
+  document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('admin-' + tab).classList.add('active');
 }
 
-function renderAdmin() {
+async function renderAdmin() {
+  if (!state.currentProfile?.is_staff) { navigate('home'); return; }
+  showLoading(true);
+  const [{ data: pending }, { data: users }, { data: ingredients }] = await Promise.all([
+    sb.from('recipes').select('*, profiles(full_name)').eq('status', 'pending'),
+    sb.from('profiles').select('*, recipes(count)'),
+    sb.from('ingredients').select('*').order('name')
+  ]);
+  showLoading(false);
+
   // Pending
-  const pending = db.recipes.filter(r=>r.status==='pending');
   const pl = document.getElementById('pending-list');
-  if(!pending.length) pl.innerHTML = '<p style="color:var(--text-muted);font-size:14px;padding:16px 0">No pending recipes. All caught up! ✅</p>';
-  else pl.innerHTML = pending.map(r=>`
-    <div class="my-recipe-row">
-      <div class="my-recipe-emoji">${r.emoji||'🍽️'}</div>
-      <div class="my-recipe-info">
-        <div class="my-recipe-title">${r.title}</div>
-        <div class="my-recipe-sub">${r.cuisine} · by ${r.authorName} · <span class="badge badge-pending">Pending</span></div>
-      </div>
-      <div class="my-recipe-actions">
-        <button class="btn btn-green btn-sm" onclick="approveRecipe(${r.id})">✓ Approve</button>
-        <button class="btn btn-danger btn-sm" onclick="rejectRecipe(${r.id})">✕ Reject</button>
-        <button class="btn btn-secondary btn-sm" onclick="openRecipe(${r.id})">View</button>
-      </div>
-    </div>`).join('');
+  if (!pending?.length) {
+    pl.innerHTML = '<p style="color:var(--text-muted);font-size:14px;padding:16px 0">No pending recipes. All caught up! ✅</p>';
+  } else {
+    pl.innerHTML = pending.map(r => `
+      <div class="my-recipe-row">
+        <div class="my-recipe-emoji">${r.emoji || '🍽️'}</div>
+        <div class="my-recipe-info">
+          <div class="my-recipe-title">${r.title}</div>
+          <div class="my-recipe-sub">${r.cuisine} · by ${r.profiles?.full_name} · <span class="badge badge-pending">Pending</span></div>
+        </div>
+        <div class="my-recipe-actions">
+          <button class="btn btn-green btn-sm" onclick="approveRecipe('${r.id}')">✓ Approve</button>
+          <button class="btn btn-danger btn-sm" onclick="rejectRecipe('${r.id}')">✕ Reject</button>
+          <button class="btn btn-secondary btn-sm" onclick="openRecipe('${r.id}')">View</button>
+        </div>
+      </div>`).join('');
+  }
+
   // Users
-  document.getElementById('users-table').innerHTML = db.users.map(u=>`
-    <tr><td><strong>${u.fullName}</strong></td><td>${u.email}</td>
-    <td><span class="badge ${u.isStaff?'badge-approved':'badge-pending'}">${u.isStaff?'Admin':'User'}</span></td>
-    <td style="color:var(--text-muted)">2024</td>
-    <td>${db.recipes.filter(r=>r.authorId===u.id).length}</td></tr>`).join('');
+  document.getElementById('users-table').innerHTML = (users || []).map(u => `
+    <tr><td><strong>${u.full_name}</strong></td><td>${u.email}</td>
+    <td><span class="badge ${u.is_staff ? 'badge-approved' : 'badge-pending'}">${u.is_staff ? 'Admin' : 'User'}</span></td>
+    <td style="color:var(--text-muted)">${new Date(u.created_at).toLocaleDateString()}</td>
+    <td>${u.recipes?.[0]?.count || 0}</td></tr>`).join('');
+
   // Ingredients
-  document.getElementById('ingredients-table').innerHTML = db.ingredients.map(i=>`
+  document.getElementById('ingredients-table').innerHTML = (ingredients || []).map(i => `
     <tr><td>${i.name}</td><td><span class="tag">${i.category}</span></td></tr>`).join('');
 }
 
-function approveRecipe(id) {
-  db.recipes.find(r=>r.id===id).status = 'approved';
+async function approveRecipe(id) {
+  await sb.from('recipes').update({ status: 'approved' }).eq('id', id);
   showToast('Recipe approved and published! ✅');
   renderAdmin();
 }
-function rejectRecipe(id) {
-  db.recipes.find(r=>r.id===id).status = 'rejected';
+
+async function rejectRecipe(id) {
+  await sb.from('recipes').update({ status: 'rejected' }).eq('id', id);
   showToast('Recipe rejected.');
   renderAdmin();
 }
-function addIngredient() {
+
+async function addIngredient() {
   const name = document.getElementById('new-ing-name').value.trim();
-  const cat  = document.getElementById('new-ing-cat').value;
-  if(!name) { showToast('Please enter a name.'); return; }
-  db.ingredients.push({id:nextIngId++, name, category:cat});
+  const cat = document.getElementById('new-ing-cat').value;
+  if (!name) { showToast('Please enter a name.'); return; }
+  await sb.from('ingredients').insert({ name, category: cat });
   document.getElementById('new-ing-name').value = '';
-  showToast(`"${name}" added to ingredients! ✅`);
+  showToast(`"${name}" added! ✅`);
+  await loadIngredients();
   renderAdmin();
 }
 
@@ -628,13 +686,12 @@ function showToast(msg) {
   t.textContent = msg;
   t.classList.add('show');
   clearTimeout(t._timer);
-  t._timer = setTimeout(()=>t.classList.remove('show'), 3000);
+  t._timer = setTimeout(() => t.classList.remove('show'), 3000);
 }
 
-// Close dropdown on outside click
 document.addEventListener('click', e => {
-  if(!e.target.closest('.ingredient-search')) document.getElementById('ing-dropdown').style.display = 'none';
+  if (!e.target.closest('.ingredient-search')) document.getElementById('ing-dropdown').style.display = 'none';
 });
 
-// Init
-renderHome();
+// Start the app
+init();
